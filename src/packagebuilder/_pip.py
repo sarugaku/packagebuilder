@@ -8,6 +8,7 @@ import itertools
 import distutils.log
 import os
 
+import appdirs
 import distlib.database
 import distlib.scripts
 import distlib.wheel
@@ -17,9 +18,12 @@ import setuptools.dist
 import six
 import vistir
 
-from passa.models.caches import CACHE_DIR
 from ._pip_shims import VCS_SUPPORT, build_wheel as _build_wheel, unpack_url
 
+
+ CACHE_DIR = os.environ.get(
+     "PACKAGEBUILDER_CACHE_DIR", appdirs.user_cache_dir("packagebuilder")
+)
 
 
 def filter_sources(requirement, sources):
@@ -48,11 +52,12 @@ def _get_src_dir():
     return os.path.join(os.getcwd(), "src")     # Match pip's behavior.
 
 
-def _prepare_wheel_building_kwargs(ireq):
-    download_dir = os.path.join(CACHE_DIR, "pkgs")
+def _prepare_wheel_building_kwargs(ireq, cache_dir=None):
+    cache_dir = cache_dir if cache_dir is not None else CACHE_DIR
+    download_dir = os.path.join(cache_dir, "pkgs")
     vistir.mkdir_p(download_dir)
 
-    wheel_download_dir = os.path.join(CACHE_DIR, "wheels")
+    wheel_download_dir = os.path.join(cache_dir, "wheels")
     vistir.mkdir_p(wheel_download_dir)
 
     if ireq.source_dir is not None:
@@ -97,18 +102,20 @@ class _PipCommand(pip_shims.Command):
     name = "PipCommand"
 
 
-def _get_pip_session(trusted_hosts):
+def _get_pip_session(trusted_hosts, cache_dir=None):
     cmd = _PipCommand()
+    if not cache_dir:
+        cache_dir = CACHE_DIR
     options, _ = cmd.parser.parse_args([])
-    options.cache_dir = CACHE_DIR
+    options.cache_dir = cache_dir
     options.trusted_hosts = trusted_hosts
     session = cmd._build_session(options)
     return session
 
 
-def _get_finder(sources):
+def _get_finder(sources, cache_dir=None):
     index_urls, trusted_hosts = _get_pip_index_urls(sources)
-    session = _get_pip_session(trusted_hosts)
+    session = _get_pip_session(trusted_hosts, cache_dir=cache_dir)
     finder = pip_shims.PackageFinder(
         find_links=[],
         index_urls=index_urls,
@@ -119,9 +126,10 @@ def _get_finder(sources):
     return finder
 
 
-def _get_wheel_cache():
+def _get_wheel_cache(cache_dir=None):
+    cache_dir = cache_dir if cache_dir is not None else CACHE_DIR
     format_control = pip_shims.FormatControl(set(), set())
-    wheel_cache = pip_shims.WheelCache(CACHE_DIR, format_control)
+    wheel_cache = pip_shims.WheelCache(cache_dir, format_control)
     return wheel_cache
 
 
@@ -149,7 +157,7 @@ class WheelBuildError(RuntimeError):
     pass
 
 
-def build_wheel(ireq, sources, hashes=None):
+def build_wheel(ireq, sources, hashes=None, cache_dir=None):
     """Build a wheel file for the InstallRequirement object.
 
     An artifact is downloaded (or read from cache). If the artifact is not a
@@ -163,7 +171,7 @@ def build_wheel(ireq, sources, hashes=None):
     `RuntimeError` subclass) if the wheel cannot be built.
     """
     kwargs = _prepare_wheel_building_kwargs(ireq)
-    finder = _get_finder(sources)
+    finder = _get_finder(sources, cache_dir=cache_dir)
 
     # Not for upgrade, hash not required. Hashes are not required here even
     # when we provide them, because pip skips local wheel cache if we set it
@@ -204,15 +212,15 @@ def build_wheel(ireq, sources, hashes=None):
         # Othereise we need to build an ephemeral wheel.
         wheel_path = _build_wheel(
             ireq, vistir.path.create_tracked_tempdir(prefix="ephem"),
-            finder, _get_wheel_cache(), kwargs,
+            finder, _get_wheel_cache(cache_dir=cache_dir), kwargs,
         )
         if wheel_path is None or not os.path.exists(wheel_path):
             raise WheelBuildError
     return distlib.wheel.Wheel(wheel_path)
 
 
-def find_installation_candidates(ireq, sources):
-    finder = _get_finder(sources)
+def find_installation_candidates(ireq, sources, cache_dir=None):
+    finder = _get_finder(sources, cache_dir=cache_dir)
     return finder.find_all_candidates(ireq.name)
 
 

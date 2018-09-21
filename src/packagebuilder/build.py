@@ -3,19 +3,23 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 from ._pip import build_wheel, get_sdist, WheelBuildError
+from ._pip_shims import get_sources
 
 
 class BuiltDist(object):
 
-    def __init__(self, ireq, sources=None):
+    def __init__(self, ireq, sources=None, cache_dir=None):
+        if not sources:
+            sources = get_sources()
         self.ireq = ireq
         self.sources = sources
         self.built = None
         self.metadata = None
+        self.cache_dir = cache_dir
 
     def build(self):
         try:
-            wheel = build_wheel(self.ireq, sources=self.sources)
+            wheel = build_wheel(self.ireq, sources=self.sources, cache_dir=self.cache_dir)
             self.built = wheel
             metadata = wheel.metadata
         except WheelBuildError:
@@ -32,3 +36,9 @@ class BuiltDist(object):
             metadata = wheel.metadata
         self.metadata = metadata
         return self.built
+
+
+def build(ireq, sources=None, cache_dir=None):
+    builder = BuiltDist(ireq, sources=sources, cache_dir=cache_dir)
+    dist = builder.build()
+    return dist
