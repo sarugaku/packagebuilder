@@ -1,0 +1,20 @@
+[packages]
+packagebuilder = { path = '.', editable = true }
+
+[dev-packages]
+invoke = '*'
+parver = '*'
+towncrier = '*'
+wheel = '*'
+pytest = '*'
+pytest-xdist = '*'
+pytest-cov = '*'
+sphinx = '*'
+sphinx-rtd-theme = '*'
+
+[scripts]
+release = 'inv release'
+tests = "pytest -v tests"
+draft = "towncrier --draft"
+changelog = "towncrier"
+build = "setup.py sdist bdist_wheel"
