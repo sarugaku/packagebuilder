@@ -22,8 +22,8 @@ sys.path.insert(0, PACKAGE_DIR)
 # -- Project information -----------------------------------------------------
 
 project = 'packagebuilder'
-copyright = '2018, Dan Ryan <dan@danryan.co> and Tzu-ping Chung <uranusjr@gmail.com>'
-author = 'Dan Ryan <dan@danryan.co> and Tzu-ping Chung <uranusjr@gmail.com>'
+copyright = '2018, Tzu-ping Chung, Dan Ryan'
+author = 'Tzu-ping Chung, Dan Ryan'
 
 # The short X.Y version
 version = '0.0'
