@@ -21,7 +21,7 @@ import vistir
 from ._pip_shims import VCS_SUPPORT, build_wheel as _build_wheel, unpack_url
 
 
- CACHE_DIR = os.environ.get(
+CACHE_DIR = os.environ.get(
      "PACKAGEBUILDER_CACHE_DIR", appdirs.user_cache_dir("packagebuilder")
 )
 
@@ -116,8 +116,10 @@ def _get_pip_session(trusted_hosts, cache_dir=None):
 def _get_finder(sources, cache_dir=None):
     index_urls, trusted_hosts = _get_pip_index_urls(sources)
     session = _get_pip_session(trusted_hosts, cache_dir=cache_dir)
+    pip_find_links = os.environ.get('PIP_FIND_LINKS', '').split()
+    passa_find_links = os.environ.get('PASSA_FIND_LINKS', '').split()
     finder = pip_shims.PackageFinder(
-        find_links=[],
+        find_links=pip_find_links + passa_find_links,
         index_urls=index_urls,
         trusted_hosts=trusted_hosts,
         allow_all_prereleases=True,
