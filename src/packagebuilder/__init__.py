@@ -5,6 +5,6 @@ from ._pip import filter_sources, find_installation_candidates
 from ._pip_shims import get_sources
 from .build import BuiltDist
 
-__version__ = '0.1.0'
+__version__ = '0.1.1.dev0'
 
 __all__ = ["BuiltDist", "filter_sources", "find_installation_candidates", "get_sources"]
